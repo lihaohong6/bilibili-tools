@@ -38,10 +38,13 @@ def check_keyword(text: str) -> int:
     return weight
 
 
+def print_danmaku(danmaku_list: list[Danmaku]):
+    print("\n".join([f"{danmaku.dm_time} {danmaku.text}" for danmaku in danmaku_list]))
+
+
 def process_video(bv: str, ):
     v = video.Video(bvid=bv)
     danmaku_list: list[Danmaku] = asyncio.run(v.get_danmakus(0))
-    print("\n".join([f"{danmaku.dm_time} {danmaku.text}" for danmaku in danmaku_list]))
     result = process_xml(danmaku_list, args.interval_length, 5, check_keyword)
     print(result)
 
@@ -49,7 +52,10 @@ def process_video(bv: str, ):
 def fill_keywords():
     f = open("keywords.txt", "r")
     while f.readable():
-        line = f.readline().split(",")
+        line = f.readline()
+        if len(line) <= 1:
+            break
+        line = line.split(",")
         keyword = line[0]
         weight = int(line[1])
         keywords.append((keyword, weight))
