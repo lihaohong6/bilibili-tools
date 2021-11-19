@@ -27,14 +27,14 @@ def find_all_xml_files() -> list[PurePath]:
     return [path.relative_to('.') for path in Path('.').rglob('*.xml') if str(path)[0] != '.']
 
 
-keywords = []
+keywords: list[tuple[str, int]] = []
 
 
 def check_keyword(text: str) -> int:
     weight = 1
     for keyword in keywords:
-        if text.find(keyword) >= 0:
-            weight += 1
+        if text.find(keyword[0]) >= 0:
+            weight += keyword[1]
     return weight
 
 
@@ -46,9 +46,19 @@ def process_video(bv: str, ):
     print(result)
 
 
+def fill_keywords():
+    f = open("keywords.txt", "r")
+    while f.readable():
+        line = f.readline().split(",")
+        keyword = line[0]
+        weight = int(line[1])
+        keywords.append((keyword, weight))
+
+
 def main():
     global args
     args = get_args()
+    fill_keywords()
     videos: list[Union[str, PurePath]] = [bv for bv in args.bv_number]
     for bv in videos:
         process_video(bv)
