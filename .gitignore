@@ -1,6 +1,11 @@
 # PyCharm
 .idea
 
+# generated files and folders
+cache
+sources.txt
+result.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

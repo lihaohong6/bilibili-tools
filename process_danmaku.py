@@ -60,14 +60,8 @@ def seconds_to_time(seconds: int) -> str:
     return f"{seconds // 3600:02}:{seconds // 60 % 60:02}:{seconds % 60:02}"
 
 
-def process_xml(danmaku_list: list[Danmaku], interval_length: int, peak_multiplier: float,
-                keyword_checker: Callable[str, int] = lambda s: 1) -> str:
-    # danmaku_list = []
-    # for child in root:
-    #     if child.tag != 'd':
-    #         continue
-    #     time = parse_attrib(child.attrib['p'])
-    #     danmaku_list.append(Danmaku(child.text, int(float(time))))
+def process_danmaku(danmaku_list: list[Danmaku], interval_length: int, peak_multiplier: float,
+                    keyword_checker: Callable[str, int] = lambda s: 1) -> str:
     frequencies: dict[int, int] = dict()
     for danmaku in danmaku_list:
         key = int(danmaku.dm_time) // interval_length
