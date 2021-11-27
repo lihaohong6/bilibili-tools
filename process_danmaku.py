@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from collections import Callable
+from typing import Callable
 from dataclasses import dataclass
 
 from bilibili_api import Danmaku
@@ -16,17 +14,11 @@ def parse_attrib(text: str) -> str:
     return text[:text.find(',')]
 
 
-def build_cumulative_frequencies(frequencies: dict[int, int]) -> list[int]:
-    keys = sorted(frequencies.keys())
-    start = keys[0]
-    end = keys[len(keys) - 1]
-    cumulative_frequencies: list[int] = [start]
-    for key in range(start, end + 1):
-        curr = cumulative_frequencies[len(cumulative_frequencies) - 1]
-        if key in frequencies:
-            curr += frequencies[key]
-        cumulative_frequencies.append(curr)
-    return cumulative_frequencies
+def build_cumulative_frequencies(frequencies: list[int]) -> list[int]:
+    cumulative = frequencies.copy()
+    for index in range(1, len(frequencies)):
+        cumulative[index] += cumulative[index - 1]
+    return cumulative
 
 
 @dataclass
@@ -35,23 +27,23 @@ class Interval:
     end: int
 
 
-def convert_peaks(frequencies: dict[int, int], peak_multiplier: float) -> list[Interval]:
-    frequency_list = list()
-    start = min(frequencies.keys())
-    end = max(frequencies.keys())
-    for key in range(start, end + 1):
-        frequency_list.append(frequencies[key] if key in frequencies else 0)
-    # plot(frequency_list)
-    average = sum(frequency_list) // len(frequency_list)
-    peaks = [index for index, count in enumerate(frequency_list) if count >= average * peak_multiplier]
-    result: list[Interval] = []
-    curr = Interval(peaks[0], peaks[0])
+def convert_peaks(frequencies: list[int], min_interval: int, peak_multiplier: float) -> list[Interval]:
+    average = sum(frequencies) / len(frequencies)
+    cumulative = build_cumulative_frequencies(frequencies)
+    # FIXME: 0th second will never be selected in a peak
+    peaks = [Interval(index - min_interval + 1, index)
+             for index in range(min_interval, len(frequencies))
+             if (cumulative[index] - cumulative[index - min_interval]) / min_interval / average >= peak_multiplier]
+    result = []
+    if len(peaks) == 0:
+        return []
+    curr: Interval = peaks[0]
     for peak in peaks:
-        if peak <= curr.end + 1:
-            curr.end = peak
+        if peak.start <= curr.end + 1:
+            curr.end = peak.end
         else:
             result.append(curr)
-            curr = Interval(peak, peak)
+            curr = peak
     result.append(curr)
     return result
 
@@ -60,19 +52,22 @@ def seconds_to_time(seconds: int) -> str:
     return f"{seconds // 3600:02}:{seconds // 60 % 60:02}:{seconds % 60:02}"
 
 
-def process_danmaku(danmaku_list: list[Danmaku], interval_length: int, peak_multiplier: float,
-                    keyword_checker: Callable[str, int] = lambda s: 1) -> str:
-    frequencies: dict[int, int] = dict()
+def build_frequencies(danmaku_list: list[Danmaku], keyword_checker: Callable[[str], int]):
+    end_time = int(max(danmaku_list, key=lambda d: d.dm_time).dm_time)
+    frequency_list = [0] * (end_time + 1)
     for danmaku in danmaku_list:
-        key = int(danmaku.dm_time) // interval_length
+        time = int(danmaku.dm_time)
         weight = keyword_checker(danmaku.text)
-        if key in frequencies:
-            frequencies[key] += weight
-        else:
-            frequencies[key] = weight
-    intervals = convert_peaks(frequencies, peak_multiplier)
+        frequency_list[time] += weight
+    return frequency_list
+
+
+def process_danmaku(danmaku_list: list[Danmaku], interval_length: int, peak_multiplier: float,
+                    keyword_checker: Callable[[str], int] = lambda s: 1) -> str:
+    frequencies: list[int] = build_frequencies(danmaku_list, keyword_checker)
+    intervals = convert_peaks(frequencies, interval_length, peak_multiplier)
     result = f"{len(intervals)} results found:\n" + \
-             "\n".join([f"{seconds_to_time(interval.start * interval_length)} to "
-                        f"{seconds_to_time(interval.end * interval_length + interval_length - 1)}"
+             "\n".join([f"{seconds_to_time(interval.start)} to "
+                        f"{seconds_to_time(interval.end)}"
                         for interval in intervals])
     return result

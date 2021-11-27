@@ -7,10 +7,9 @@ import json
 import re
 from argparse import ArgumentParser, Namespace
 from pathlib import Path, PurePath
-from typing import Union, Any, Iterable
+from typing import Any, Iterable
 
-import requests
-from bilibili_api import video, Danmaku, sync
+from bilibili_api import video, Danmaku
 
 from process_danmaku import process_danmaku
 
@@ -19,10 +18,19 @@ args: Namespace
 
 def get_args():
     parser = ArgumentParser()
-    parser.add_argument("bv_number", type=str, nargs='*')
-    parser.add_argument("-k", "--keyword", dest="keyword_file", type=str, default="keywords.txt")
-    parser.add_argument("-f", "--file", type=str)
-    parser.add_argument("-i", "--interval_length", type=int, default=5)
+    parser.add_argument("bv_number", type=str, nargs='*',
+                        help="Input BV numbers.")
+    parser.add_argument("-k", "--keyword", dest="keyword_file", type=str, default="keywords.txt",
+                        help="Specify a file which contains keywords. "
+                             "Danmakus containing a keyword will have increased weight.")
+    parser.add_argument("-f", "--file", type=str,
+                        help="Specify a file from which the program will read BV numbers.")
+    parser.add_argument("-i", "--interval_length", type=int, default=5,
+                        help="Minimum length of the time interval. Used to avoid scattered time intervals. "
+                             "Default to 5.")
+    parser.add_argument("-m", "--peak-multiplier", dest="multiplier", type=float, default=6,
+                        help="Only select time intervals with danmaku count x times more than the average. "
+                             "Higher means less intervals found. Default to 6. ")
     return parser.parse_args()
 
 
@@ -88,7 +96,7 @@ async def process_video(bv: str):
     v = video.Video(bvid=bv)
     info_task = v.get_info()
     danmaku_list: list[Danmaku] = await fetch_danmaku(v)
-    result = process_danmaku(danmaku_list, args.interval_length, 5, check_keyword)
+    result = process_danmaku(danmaku_list, args.interval_length, args.multiplier, check_keyword)
     video_info = await info_task
     print(f"Title: {video_info['title']}. Source: {bv}.\n{result}")
 
