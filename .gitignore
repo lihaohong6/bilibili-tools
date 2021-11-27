@@ -5,6 +5,7 @@
 cache
 sources.txt
 result.txt
+test.xml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
