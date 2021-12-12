@@ -6,6 +6,7 @@ cache/
 logs/
 sources.txt
 result.txt
+source/
 test.xml
 playground.py
 
