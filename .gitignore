@@ -2,10 +2,12 @@
 .idea
 
 # generated files and folders
-cache
+cache/
+logs/
 sources.txt
 result.txt
 test.xml
+playground.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

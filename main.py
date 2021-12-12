@@ -1,13 +1,12 @@
 import asyncio
-import json
 import re
 from argparse import ArgumentParser, Namespace
 from pathlib import Path, PurePath
-from typing import Any, Iterable, Union
+from typing import Iterable
 
-import xml.etree.ElementTree as ET
 from bilibili_api import video, Danmaku
 
+from fetch_danmaku import fetch_danmaku
 from process_danmaku import process_danmaku
 
 args: Namespace
@@ -15,8 +14,9 @@ args: Namespace
 
 def get_args():
     parser = ArgumentParser()
-    parser.add_argument("bv_number", type=str, nargs='*',
-                        help="Input BV numbers.")
+    parser.add_argument("danmaku_source", type=str, nargs='*',
+                        help="Input Danmaku source. "
+                             "Possible options are BV numbers and file names (only XML is supported)")
     parser.add_argument("-k", "--keyword", dest="keyword_file", type=str, default="keywords.txt",
                         help="Specify a file which contains keywords. "
                              "Danmakus containing a keyword will have increased weight.")
@@ -32,7 +32,9 @@ def get_args():
 
 
 def find_all_xml_files() -> list[PurePath]:
-    return [path.relative_to('.') for path in Path('.').rglob('*.xml') if str(path)[0] != '.']
+    # find all .xml files in current directory; ignoring hidden folders
+    return [path.relative_to('.') for path in Path('.').rglob('*.xml')
+            if str(path)[0] != '.']
 
 
 keywords: list[tuple[str, int]] = []
@@ -48,63 +50,6 @@ def check_keyword(text: str) -> int:
 
 def print_danmaku(danmaku_list: list[Danmaku]):
     print("\n".join([f"{danmaku.dm_time} {danmaku.text}" for danmaku in danmaku_list]))
-
-
-danmaku_attributes = ['dm_time', 'text']
-
-
-def danmaku_to_dict(danmaku: Danmaku) -> dict[str, Any]:
-    result = {}
-    for attr in danmaku_attributes:
-        result[attr] = getattr(danmaku, attr)
-    return result
-
-
-def danmaku_list_to_json(danmaku_list: list[Danmaku]) -> str:
-    return json.dumps([danmaku_to_dict(d) for d in danmaku_list])
-
-
-def json_to_danmaku_list(data: str) -> list[Danmaku]:
-    dict_list = json.loads(data)
-    result = []
-    for d in dict_list:
-        danmaku = Danmaku("")
-        for attr in danmaku_attributes:
-            setattr(danmaku, attr, d[attr])
-        result.append(danmaku)
-    return result
-
-
-def parse_attrib(attrib: str) -> float:
-    return float(attrib[:attrib.find(',')])
-
-
-def xml_to_danmaku_list(filename: str) -> list[Danmaku]:
-    tree = ET.parse(filename)
-    root = tree.getroot()
-    result = []
-    for child in root:
-        if child.tag == 'd':
-            dm_time = parse_attrib(child.attrib['p'])
-            result.append(Danmaku(text=child.text, dm_time=dm_time))
-    return result
-
-
-async def fetch_danmaku(v: Union[video.Video, str]) -> list[Danmaku]:
-    if isinstance(v, video.Video):
-        bv = v.get_bvid()
-        file_path = Path(f"cache/{bv}.json")
-        if file_path.exists():
-            data = open(file_path, 'r').read()
-            danmaku_list = json_to_danmaku_list(data)
-        else:
-            danmaku_list: list[Danmaku] = await v.get_danmakus(0)
-            file = open(file_path, 'w')
-            file.write(danmaku_list_to_json(danmaku_list))
-            file.close()
-        return danmaku_list
-    else:
-        return xml_to_danmaku_list(v)
 
 
 async def process_video(source: str):
@@ -139,7 +84,7 @@ def get_videos() -> set[str]:
         f = open(args.file, 'r')
         bvs = re.split('[,; \n\t\r\v\f]+', f.read())
         result = set([bv for bv in bvs if len(bv) > 5])
-    result = result.union(set(args.bv_number))
+    result = result.union(set(args.danmaku_source))
     return result
 
 

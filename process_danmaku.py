@@ -27,6 +27,7 @@ class Interval:
     end: int
 
 
+# TODO: what if stream popularity goes up and down; determine danmaku density relative to a 10 minutes window?
 def convert_peaks(frequencies: list[int], min_interval: int, peak_multiplier: float) -> list[Interval]:
     average = sum(frequencies) / len(frequencies)
     cumulative = build_cumulative_frequencies(frequencies)
