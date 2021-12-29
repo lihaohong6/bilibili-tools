@@ -31,7 +31,7 @@ class Interval:
 def convert_peaks(frequencies: list[int], min_interval: int, peak_multiplier: float) -> list[Interval]:
     average = sum(frequencies) / len(frequencies)
     cumulative = build_cumulative_frequencies(frequencies)
-    # FIXME: 0th second will never be selected in a peak
+    # FIXME: 0th second will never be selected in a peak. But does that really matter?
     peaks = [Interval(index - min_interval + 1, index)
              for index in range(min_interval, len(frequencies))
              if (cumulative[index] - cumulative[index - min_interval]) / min_interval / average >= peak_multiplier]

@@ -53,7 +53,7 @@ def print_danmaku(danmaku_list: list[Danmaku]):
 
 
 async def process_video(source: str):
-    if source.find('BV') == 0:
+    if source.find('BV') == 0 and source.find('.xml') == -1:
         bv = True
         v = video.Video(bvid=source)
         info_task = v.get_info()

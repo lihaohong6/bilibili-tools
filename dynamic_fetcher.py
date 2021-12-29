@@ -59,8 +59,9 @@ def origin_to_text(origin: dict) -> str:
 async def main():
     Path(CACHE_ROOT).mkdir(exist_ok=True)
     arg_parser = ArgumentParser()
-    arg_parser.add_argument("uid", type=int, nargs="+")
-    arg_parser.add_argument("-f", "--force-download", dest="download", action="store_true", default=False)
+    arg_parser.add_argument("uid", type=int, nargs="+", help="A list of bilibili uid")
+    arg_parser.add_argument("-f", "--force-download", dest="download", action="store_true", default=False,
+                            help="Whether the program should use cached results or re-download dynamics from bilibili.")
     args = arg_parser.parse_args()
 
     def dynamic_to_str(d) -> str:
