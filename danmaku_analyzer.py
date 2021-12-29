@@ -6,8 +6,8 @@ from typing import Iterable
 
 from bilibili_api import video, Danmaku
 
-from fetch_danmaku import fetch_danmaku
-from process_danmaku import process_danmaku
+from utils.fetch_data import fetch_danmaku
+from utils.process_danmaku import process_danmaku
 
 args: Namespace
 
